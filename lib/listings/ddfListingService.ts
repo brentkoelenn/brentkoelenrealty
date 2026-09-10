@@ -254,4 +254,58 @@ async function getListingById(id: string): Promise<Listing | null> {
 
 async function getFeaturedListings(count = 6): Promise<Listing[]> {
   const data = await ddfFetch(
-    `/Property?$filter=${encodeURIComponent(buil
+    `/Property?$filter=${encodeURIComponent(buildRegionFilter())}&$top=${count}&$orderby=ModificationTimestamp desc`
+  );
+  return (data.value ?? []).map(mapProperty);
+}
+
+async function getListingsByCity(city: string): Promise<Listing[]> {
+  const filter = `contains(City,'${escapeOData(city)}')`;
+  const data = await ddfFetch(`/Property?$filter=${encodeURIComponent(filter)}&$top=100`);
+  return (data.value ?? []).map(mapProperty);
+}
+
+async function getListingsByPropertyTypes(types: string[]): Promise<Listing[]> {
+  // DDF's PropertySubType values don't map 1:1 to our internal PropertyType
+  // names, so we fetch broadly (within the Grey Bruce region) and filter
+  // using the same mapPropertyType() logic used everywhere else. $top is
+  // capped at 100 by CREA's API.
+  const data = await ddfFetch(`/Property?$filter=${encodeURIComponent(buildRegionFilter())}&$top=100`);
+  const mapped = (data.value ?? []).map(mapProperty);
+  const normalized = types.map((t) => t.toLowerCase());
+  return mapped.filter((l) => normalized.includes(l.propertyType.toLowerCase()));
+}
+
+async function searchListings(params: ListingSearchParams): Promise<Listing[]> {
+  const filter = buildFilter(params);
+  const query = filter ? `?$filter=${encodeURIComponent(filter)}&$top=100` : `?$top=100`;
+  const data = await ddfFetch(`/Property${query}`);
+  let results = (data.value ?? []).map(mapProperty);
+
+  if (params.propertyType && params.propertyType !== "Any") {
+    results = results.filter((l) => l.propertyType === params.propertyType);
+  }
+
+  switch (params.sortBy) {
+    case "price-asc":
+      results.sort((a, b) => a.price - b.price);
+      break;
+    case "price-desc":
+      results.sort((a, b) => b.price - a.price);
+      break;
+    case "newest":
+      results.sort((a, b) => (a.listingDate < b.listingDate ? 1 : -1));
+      break;
+  }
+
+  return results;
+}
+
+export const ddfListingService: ListingService = {
+  getAllListings,
+  getListingById,
+  searchListings,
+  getFeaturedListings,
+  getListingsByCity,
+  getListingsByPropertyTypes,
+};
