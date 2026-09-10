@@ -177,8 +177,52 @@ function escapeOData(value: string): string {
   return value.replace(/'/g, "''");
 }
 
+// ----------------------------------------------------------------------------
+// Brent's DDF access is national in scope (per CREA's National Shared Pool),
+// so an unfiltered query returns listings from anywhere in Canada. This site
+// is specifically about Grey Bruce / Bruce County, so every listing query
+// below is restricted to this list of local municipalities. Expand this list
+// if Brent starts serving additional towns/townships.
+// ----------------------------------------------------------------------------
+const GREY_BRUCE_CITIES = [
+  "Hanover",
+  "Walkerton",
+  "Owen Sound",
+  "Chesley",
+  "Kincardine",
+  "Port Elgin",
+  "Southampton",
+  "Sauble Beach",
+  "Saugeen Shores",
+  "South Bruce Peninsula",
+  "Grey Highlands",
+  "West Grey",
+  "Georgian Bluffs",
+  "Arran-Elderslie",
+  "Brockton",
+  "Huron-Kinloss",
+  "Northern Bruce Peninsula",
+  "Meaford",
+  "Wiarton",
+  "Tobermory",
+  "Markdale",
+  "Durham",
+  "Dundalk",
+  "Paisley",
+  "Tara",
+  "Chatsworth",
+  "Neustadt",
+  "Ripley",
+  "Lucknow",
+  "Teeswater",
+];
+
+function buildRegionFilter(): string {
+  return `(${GREY_BRUCE_CITIES.map((city) => `City eq '${escapeOData(city)}'`).join(" or ")})`;
+}
+
 function buildFilter(params: ListingSearchParams): string {
-  const clauses: string[] = [];
+  const clauses: string[] = [buildRegionFilter()];
   if (params.location) clauses.push(`contains(City,'${escapeOData(params.location)}')`);
   if (params.minPrice !== undefined) clauses.push(`ListPrice ge ${params.minPrice}`);
   if (params.maxPrice !== undefined) clauses.push(`ListPrice le ${params.maxPrice}`);
@@ -189,7 +233,12 @@ function buildFilter(params: ListingSearchParams): string {
 }
 
 async function getAllListings(): Promise<Listing[]> {
-  const data = await ddfFetch(`/Property?$top=100&$orderby=ModificationTimestamp desc`);
+  // CREA's DDF API caps $top at 100 per request — asking for more returns a
+  // 400 error, which used to crash the whole site build (e.g. sitemap
+  // generation). Stay at or under 100 here.
+  const data = await ddfFetch(
+    `/Property?$filter=${encodeURIComponent(buildRegionFilter())}&$top=100&$orderby=ModificationTimestamp desc`
+  );
   return (data.value ?? []).map(mapProperty);
 }
 
@@ -204,56 +253,5 @@ async function getListingById(id: string): Promise<Listing | null> {
 }
 
 async function getFeaturedListings(count = 6): Promise<Listing[]> {
-  const data = await ddfFetch(`/Property?$top=${count}&$orderby=ModificationTimestamp desc`);
-  return (data.value ?? []).map(mapProperty);
-}
-
-async function getListingsByCity(city: string): Promise<Listing[]> {
-  const filter = `contains(City,'${escapeOData(city)}')`;
-  const data = await ddfFetch(`/Property?$filter=${encodeURIComponent(filter)}&$top=100`);
-  return (data.value ?? []).map(mapProperty);
-}
-
-async function getListingsByPropertyTypes(types: string[]): Promise<Listing[]> {
-  // DDF's PropertySubType values don't map 1:1 to our internal PropertyType
-  // names, so we fetch broadly and filter using the same mapPropertyType()
-  // logic used everywhere else.
-  const data = await ddfFetch(`/Property?$top=100`);
-  const mapped = (data.value ?? []).map(mapProperty);
-  const normalized = types.map((t) => t.toLowerCase());
-  return mapped.filter((l) => normalized.includes(l.propertyType.toLowerCase()));
-}
-
-async function searchListings(params: ListingSearchParams): Promise<Listing[]> {
-  const filter = buildFilter(params);
-  const query = filter ? `?$filter=${encodeURIComponent(filter)}&$top=100` : `?$top=100`;
-  const data = await ddfFetch(`/Property${query}`);
-  let results = (data.value ?? []).map(mapProperty);
-
-  if (params.propertyType && params.propertyType !== "Any") {
-    results = results.filter((l) => l.propertyType === params.propertyType);
-  }
-
-  switch (params.sortBy) {
-    case "price-asc":
-      results.sort((a, b) => a.price - b.price);
-      break;
-    case "price-desc":
-      results.sort((a, b) => b.price - a.price);
-      break;
-    case "newest":
-      results.sort((a, b) => (a.listingDate < b.listingDate ? 1 : -1));
-      break;
-  }
-
-  return results;
-}
-
-export const ddfListingService: ListingService = {
-  getAllListings,
-  getListingById,
-  searchListings,
-  getFeaturedListings,
-  getListingsByCity,
-  getListingsByPropertyTypes,
-};
+  const data = await ddfFetch(
+    `/Property?$filter=${encodeURIComponent(buil
