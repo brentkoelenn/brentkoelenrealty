@@ -218,7 +218,13 @@ const GREY_BRUCE_CITIES = [
 ];
 
 function buildRegionFilter(): string {
-  return `(${GREY_BRUCE_CITIES.map((city) => `City eq '${escapeOData(city)}'`).join(" or ")})`;
+  // A long chain of "City eq 'X' or City eq 'Y' or ..." is too complex for
+  // CREA's DDF API (it enforces a $filter "node count" limit of 100, which a
+  // 30-town OR-chain blows past, returning a 400 error). The OData `in`
+  // operator expresses the same "one of these towns" condition far more
+  // compactly and stays well under that limit.
+  const list = GREY_BRUCE_CITIES.map((city) => `'${escapeOData(city)}'`).join(",");
+  return `City in (${list})`;
 }
 
 function buildFilter(params: ListingSearchParams): string {
