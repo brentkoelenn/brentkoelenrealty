@@ -189,7 +189,7 @@ function buildFilter(params: ListingSearchParams): string {
 }
 
 async function getAllListings(): Promise<Listing[]> {
-  const data = await ddfFetch(`/Property?$top=200&$orderby=ModificationTimestamp desc`);
+  const data = await ddfFetch(`/Property?$top=100&$orderby=ModificationTimestamp desc`);
   return (data.value ?? []).map(mapProperty);
 }
 
@@ -218,7 +218,7 @@ async function getListingsByPropertyTypes(types: string[]): Promise<Listing[]> {
   // DDF's PropertySubType values don't map 1:1 to our internal PropertyType
   // names, so we fetch broadly and filter using the same mapPropertyType()
   // logic used everywhere else.
-  const data = await ddfFetch(`/Property?$top=200`);
+  const data = await ddfFetch(`/Property?$top=100`);
   const mapped = (data.value ?? []).map(mapProperty);
   const normalized = types.map((t) => t.toLowerCase());
   return mapped.filter((l) => normalized.includes(l.propertyType.toLowerCase()));
