@@ -1,5 +1,6 @@
 # Brent Koelen Real Estate Website
 
+
 A lead-generation real estate website for Brent Koelen, REALTOR® with eXp Realty, serving Grey Bruce and Bruce County, Ontario. Built with Next.js, TypeScript, and Tailwind CSS.
 
 **IMPORTANT — this site currently runs entirely on SAMPLE listing data.** No real MLS® listings are displayed, and no CRM/email service is connected to the lead forms yet. See "What's Not Real Yet" below.
