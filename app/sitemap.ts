@@ -2,10 +2,13 @@ import { MetadataRoute } from "next";
 import { siteConfig } from "@/lib/config/site";
 import { communities } from "@/lib/config/communities";
 import { listingService } from "@/lib/listings/listingService";
+import { safeListingCall } from "@/lib/listings/safeFetch";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const base = siteConfig.siteUrl;
-  const listings = await listingService.getAllListings();
+  // Never let a listings-source hiccup take down the whole sitemap (and
+  // therefore the whole build) — fall back to an empty list instead.
+  const listings = await safeListingCall(() => listingService.getAllListings(), []);
 
   const staticRoutes = [
     "",
