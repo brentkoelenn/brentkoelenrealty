@@ -1,0 +1,59 @@
+@import "tailwindcss";
+
+@theme {
+  /* ---- Brand palette: white, near-black charcoal, red accent ---- */
+  --color-ink: #14110f;
+  --color-charcoal: #23201d;
+  --color-stone: #6b6560;
+  --color-mist: #9c9690;
+  --color-fog: #e9e6e1;
+  --color-paper: #fbfaf8;
+  --color-white: #ffffff;
+
+  --color-brand-red: #b3241c;
+  --color-brand-red-dark: #8f1c16;
+  --color-brand-red-light: #fdeceb;
+
+  --font-sans: "Helvetica Neue", Arial, ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-display: Georgia, "Times New Roman", ui-serif, serif;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+}
+
+.font-display {
+  font-family: var(--font-display);
+}
+
+/* Subtle, non-flashy transitions used throughout */
+.transition-brand {
+  transition: all 200ms ease;
+}
+
+::selection {
+  background: var(--color-brand-red);
+  color: var(--color-white);
+}
+
+/* Simple fade-in-up utility for section reveals (no JS scroll libraries) */
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-up {
+  animation: fade-up 0.6s ease both;
+}
